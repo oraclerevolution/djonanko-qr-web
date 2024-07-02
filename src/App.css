@@ -28,6 +28,24 @@
   color: #61dafb;
 }
 
+.hero {
+  background-color: #0b4530;
+}
+
+.senderInfos {
+  background-color: #efefef;
+}
+
+.button {
+  background-color: #0b4530;
+  color: #fff;
+}
+
+.title {
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
