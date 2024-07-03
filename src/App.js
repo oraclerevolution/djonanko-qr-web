@@ -37,10 +37,10 @@ function App() {
           numero,
           password
         })
-        .then((res) => {
+        .then(async (res) => {
           console.log('res', res.data.access_token)
           setAdminToken(res.data.access_token)
-          getUserInfos(res.data.access_token)
+          await getUserInfos(res.data.access_token)
           return res.data
         })
         .catch((err) => {
@@ -88,6 +88,14 @@ function App() {
     }).catch((err) => {
       console.log("error", err.response.data)
     })
+  }
+
+  const disabledButton = () => {
+    if(adminToken === '' || sourceOperator === '' || recipientNumber === '' || recipientNumber.length < 10 || amount === '' || parseInt(amount) < 500) {
+      return true
+    } else {
+      return false
+    }
   }
 
   useEffect(() => {
@@ -252,8 +260,8 @@ function App() {
             <button
               type="submit"
               className="w-full text-white py-2 rounded-lg transition duration-300 button"
-              disabled={adminToken === '' || sourceOperator === '' || recipientNumber === '' || recipientNumber.length < 10 || amount === '' || parseInt(amount) < 500}
-              style={{backgroundColor: adminToken === '' ? '#efefef' : '#0b4530', color: adminToken === '' ? '#000' : '#0b4530' }}
+              disabled={disabledButton()}
+              style={{backgroundColor: disabledButton() ? '#efefef' : '#0b4530', color: disabledButton() ? '#000' : '#fff' }}
             >
               Effectuer le paiement
             </button>
