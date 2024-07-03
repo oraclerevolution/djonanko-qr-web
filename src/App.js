@@ -71,6 +71,8 @@ function App() {
 
 
   const getUserInfos = async (token) => {
+    console.log('token', token);
+    console.log('receiverNumber', receiverNumber);
     await axios.get(`https://djonanko-service.onrender.com/user/user-infos-by-number`, {
       headers: {
         'authenticationtoken': token
