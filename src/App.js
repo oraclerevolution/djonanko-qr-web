@@ -33,7 +33,7 @@ function App() {
       console.log("Veuillez remplir tous les champs")
     } else {
       await axios
-        .post("https://cors-anywhere.herokuapp.com/https://djonanko-service.onrender.com/user/login", {
+        .post("https://djonanko-service.onrender.com/user/login", {
           numero,
           password
         })
@@ -71,7 +71,7 @@ function App() {
 
 
   const getUserInfos = async (token) => {
-    await axios.get(`https://cors-anywhere.herokuapp.com/https://djonanko-service.onrender.com/user/user-infos-by-number`, {
+    await axios.get(`https://djonanko-service.onrender.com/user/user-infos-by-number`, {
       headers: {
         'authenticationtoken': token
       },
