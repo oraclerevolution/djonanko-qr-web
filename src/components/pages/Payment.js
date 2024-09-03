@@ -9,8 +9,9 @@ import mtn from '../../mtn.png'
 import queryString from 'query-string';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import { InfinitySpin } from 'react-loader-spinner';
 
-function useQuery () { return new URLSearchParams(useLocation().search); }
+function useQuery() { return new URLSearchParams(useLocation().search); }
 
 const Payment = () => {
   const [amount, setAmount] = useState('');
@@ -20,21 +21,73 @@ const Payment = () => {
   const [message, setMessage] = useState('');
   const [receiverNumber, setReceiverNumber] = useState('');
   const [adminToken, setAdminToken] = useState('')
-  const [adminNumber, setAdminNumber] = useState('0709483463');
-  const [adminPassword, setAdminPassword] = useState('1234');
   const [receiverInfos, setReceiverInfos] = useState({});
-  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
   const query = useQuery();
   const numero = query.get('numero');
   console.log('sourceOperator', sourceOperator);
 
-  const handleSubmit = (e) => {
+  /**
+ * Handles the submission of the payment form.
+ *
+ * Sets the loading state to true, prevents the default form submission behavior,
+ * and sends a POST request to the payment processing API with the provided payment details.
+ *
+ * If the response from the API is successful, it redirects the user to the payment URL.
+ * If the response fails, it displays an error message and sets the loading state to false.
+ *
+ * @param {Event} e - The form submission event.
+ * @return {void}
+ */
+  const handleSubmit = async (e) => {
+    setLoading(true)
     e.preventDefault();
     // Logique pour traiter le paiement ici
-    setMessage(`Paiement de ${amount}€ à ${recipientNumber} effectué avec succès!`);
+    await axios.post("https://djonanko-service.onrender.com/paiement/process-payout", {
+      "currency": "XOF",
+      "amount": parseInt(amount),
+      "state": 'initiated',
+      "return_url": 'https://djonanko.ci',
+      "cancel_url": 'https://djonanko.ci',
+      "reference": "Spark_Group",
+      "operator": 'orange',
+      "country": 'ci',
+      "senderOperateur": sourceOperator,
+      "receiverOperateur": recipientOperator,
+      "receiverNumber": receiverNumber,
+      "user_msisdn": recipientNumber,
+      "payFees": true,
+      "channel": "web"
+    }, {
+      headers: {
+        'authenticationtoken': adminToken
+      }
+    }).then((response) => {
+      if (response.data.status === 300) {
+        setLoading(false)
+        setMessage("Une erreur est survenue, veuillez reessayer !")
+      } else if (response.data.status === 201) {
+        console.log('response', response.data);
+        const payment_url = response.data.payment_url;
+        window.location.href = payment_url
+        setLoading(false)
+      } else {
+        setLoading(false)
+      }
+    }).catch((error) => {
+      console.log('erreur response', error);
+      setLoading(false)
+    })
   };
 
 
+  /**
+   * Logs in a user with the provided numero and password.
+   *
+   * @param {string} numero - The user's phone number.
+   * @param {string} password - The user's password.
+   * @return {object} The response data from the login API call.
+   */
   const login = async (numero, password) => {
     if (numero === "" || password === "") {
       console.log("Veuillez remplir tous les champs")
@@ -61,6 +114,12 @@ const Payment = () => {
     }
   }
 
+  /**
+ * Displays the recipient operator number based on the provided operator.
+ *
+ * @param {string} operator - The operator for which to display the recipient number.
+ * @return {JSX.Element} A JSX element containing the formatted recipient operator number.
+ */
   const displayRecipientOperatorNumber = (operator) => {
     switch (operator) {
       case 'Orange':
@@ -76,15 +135,20 @@ const Payment = () => {
     }
   }
 
-  const displayOTPInput = (sourceOperator) => {
-    if(sourceOperator === 'Orange' || sourceOperator === 'Moov' || sourceOperator === 'MTN') {
-        return true;
-    } else {
-        return false;
-    }
-  }
+  // const displayOTPInput = (sourceOperator) => {
+  //   if (sourceOperator === 'Orange' || sourceOperator === 'Moov' || sourceOperator === 'MTN') {
+  //     return true;
+  //   } else {
+  //     return false;
+  //   }
+  // }
 
-
+  /**
+   * Retrieves user information by phone number using the provided authentication token.
+   *
+   * @param {string} token - The authentication token for the request.
+   * @return {Promise<void>} A promise that resolves when the user information is retrieved.
+   */
   const getUserInfos = async (token) => {
     await axios.get(`https://djonanko-service.onrender.com/user/user-infos-by-number`, {
       headers: {
@@ -115,7 +179,7 @@ const Payment = () => {
 
   useEffect(() => {
     setReceiverNumber(numero);
-    login(adminNumber, adminPassword);
+    login(process.env.adminNumber, process.env.adminPassword);
   }, []);
 
   return (
@@ -271,8 +335,8 @@ const Payment = () => {
               />
             </div>
             {parseInt(amount) < 500 && <p className='text-red-500 mb-4'>Entrez un montant supérieur ou égale à 500 FCFA</p>}
-            
-            {displayOTPInput(sourceOperator) && <div className="mb-4">
+
+            {/* {displayOTPInput(sourceOperator) && <div className="mb-4">
               <label className="block text-gray-700 mb-2">Saisissez le code OTP</label>
               <input
                 type="text"
@@ -282,16 +346,26 @@ const Payment = () => {
                 className="w-full px-3 py-2 border rounded-lg"
                 required
               />
-            </div>}
-
-            <button
-              type="submit"
-              className="w-1/2 text-white py-2 rounded-lg transition self-center duration-300 button"
-              disabled={disabledButton()}
-              style={{ backgroundColor: disabledButton() ? '#efefef' : '#0b4530', color: disabledButton() ? '#000' : '#fff' }}
-            >
-              Effectuer le paiement
-            </button>
+            </div>} */}
+            {loading ? (
+              <div style={{ justifyContent: 'center', alignItems: 'center', display:'flex' }}>
+                <InfinitySpin
+                  visible={true}
+                  width="100"
+                  color="#0b4530"
+                  ariaLabel="infinity-spin-loading"
+                />
+              </div>
+            ) : (
+              <button
+                type="submit"
+                className="w-1/2 text-white py-2 rounded-lg transition self-center duration-300 button"
+                disabled={disabledButton()}
+                style={{ backgroundColor: disabledButton() ? '#efefef' : '#0b4530', color: disabledButton() ? '#000' : '#fff' }}
+              >
+                Effectuer le paiement
+              </button>
+            )}
           </form>
           {message && <p className="mt-4 text-green-600">{message}</p>}
         </div>
