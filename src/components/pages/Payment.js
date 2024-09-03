@@ -89,6 +89,8 @@ const Payment = () => {
    * @return {object} The response data from the login API call.
    */
   const login = async (numero, password) => {
+    console.log('numero', numero)
+    console.log('password', password)
     if (numero === "" || password === "") {
       console.log("Veuillez remplir tous les champs")
     } else {
@@ -179,7 +181,7 @@ const Payment = () => {
 
   useEffect(() => {
     setReceiverNumber(numero);
-    login(process.env.adminNumber, process.env.adminPassword);
+    login('0709483463', '1234');
   }, []);
 
   return (
