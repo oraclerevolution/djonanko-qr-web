@@ -9,13 +9,12 @@ import mtn from '../../mtn.png'
 import queryString from 'query-string';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import { InfinitySpin } from 'react-loader-spinner';
+import { InfinitySpin, TailSpin } from 'react-loader-spinner';
 
 function useQuery() { return new URLSearchParams(useLocation().search); }
 
 const Payment = () => {
   const [amount, setAmount] = useState('');
-  const [recipientNumber, setRecipientNumber] = useState('');
   const [sourceOperator, setSourceOperator] = useState('');
   const [recipientOperator, setRecipientOperator] = useState('');
   const [message, setMessage] = useState('');
@@ -25,7 +24,6 @@ const Payment = () => {
   const [loading, setLoading] = useState(false);
   const query = useQuery();
   const numero = query.get('numero');
-  console.log('sourceOperator', sourceOperator);
 
   /**
  * Handles the submission of the payment form.
@@ -42,42 +40,32 @@ const Payment = () => {
   const handleSubmit = async (e) => {
     setLoading(true)
     e.preventDefault();
-    // Logique pour traiter le paiement ici
-    await axios.post("https://djonanko-service.onrender.com/paiement/process-payout", {
-      "currency": "XOF",
-      "amount": parseInt(amount),
-      "state": 'initiated',
-      "return_url": 'https://djonanko.ci',
-      "cancel_url": 'https://djonanko.ci',
-      "reference": "Spark_Group",
-      "operator": 'orange',
-      "country": 'ci',
-      "senderOperateur": sourceOperator,
-      "receiverOperateur": recipientOperator,
-      "receiverNumber": receiverNumber,
-      "user_msisdn": recipientNumber,
-      "payFees": true,
-      "channel": "web"
-    }, {
-      headers: {
-        'authenticationtoken': adminToken
-      }
-    }).then((response) => {
-      if (response.data.status === 300) {
-        setLoading(false)
-        setMessage("Une erreur est survenue, veuillez reessayer !")
-      } else if (response.data.status === 201) {
-        console.log('response', response.data);
-        const payment_url = response.data.payment_url;
-        window.location.href = payment_url
-        setLoading(false)
-      } else {
-        setLoading(false)
-      }
-    }).catch((error) => {
-      console.log('erreur response', error);
+    try {
+      const response = await axios.post("http://localhost:3002/paiement/process-payout", {
+        "currency": "XOF",
+        "amount": parseInt(amount),
+        "state": 'initiated',
+        "return_url": 'https://djonanko.ci',
+        "cancel_url": 'https://djonanko.ci',
+        "reference": "Spark_Group",
+        "operator": sourceOperator.toLowerCase(),
+        "country": 'ci',
+        "senderOperateur": sourceOperator,
+        "receiverOperateur": recipientOperator,
+        "receiverNumber": receiverNumber,
+        "payFees": true,
+        "channel": "web"
+      }, {
+        headers: {
+          'authenticationtoken': adminToken
+        }
+      });
       setLoading(false)
-    })
+      const payment_url = response.data.payment_url;
+      window.location.href = payment_url;
+    } catch (error) {
+      console.log('erreur response', error)
+    }
   };
 
 
@@ -89,10 +77,8 @@ const Payment = () => {
    * @return {object} The response data from the login API call.
    */
   const login = async (numero, password) => {
-    console.log('numero', numero)
-    console.log('password', password)
     if (numero === "" || password === "") {
-      console.log("Veuillez remplir tous les champs")
+      setMessage("Veuillez remplir tous les champs")
     } else {
       await axios
         .post("https://djonanko-service.onrender.com/user/login", {
@@ -100,14 +86,11 @@ const Payment = () => {
           password
         })
         .then((res) => {
-          console.log('res', res.data.access_token)
           setAdminToken(res.data.access_token)
           getUserInfos(res.data.access_token)
           return res.data
         })
         .catch((err) => {
-          console.log("err", err.response.data);
-          console.log('status', err.response.data.status)
           if (err.response.data.statusCode === 404 || err.response.data.statusCode === 400) {
             console.log('status', err.response.data.message)
           }
@@ -160,7 +143,6 @@ const Payment = () => {
         phoneNumber: numero
       }
     }).then((res) => {
-      console.log('res', res.data);
       setReceiverInfos(res.data)
       // res.data.moovMoney !== null ? setMoovNumber(res.data.moovMoney) : setMoovNumber("")
       // res.data.orangeMoney !== null ? setOrangeNumber(res.data.orangeMoney) : setOrangeNumber("")
@@ -172,7 +154,7 @@ const Payment = () => {
   }
 
   const disabledButton = () => {
-    if (adminToken === '' || sourceOperator === '' || recipientNumber === '' || recipientNumber.length < 10 || amount === '' || parseInt(amount) < 500) {
+    if (adminToken === '' || sourceOperator === '' || amount === '' || parseInt(amount) < 500) {
       return true
     } else {
       return false
@@ -198,7 +180,19 @@ const Payment = () => {
       <section className="bg-white py-8">
         <div className='border max-w-md mx-auto p-4 rounded-lg senderInfos flex flex-col justify-center items-center'>
           {receiverInfos.fullname === undefined ? (
-            <p>Chargement</p>
+            <>
+              <p style={{ marginBottom: '10px' }}>Chargement</p>
+              <TailSpin
+                visible={true}
+                height="20"
+                width="20"
+                color="#0b4530"
+                ariaLabel="tail-spin-loading"
+                radius="1"
+                wrapperStyle={{}}
+                wrapperClass=""
+              />
+            </>
           ) : (
             <>
               <p className='italic mb-2'>Informations du destinataire</p>
@@ -253,8 +247,8 @@ const Payment = () => {
                 <label className="flex items-center text-xs">
                   <input
                     type="radio"
-                    value="MTN"
-                    checked={sourceOperator === 'MTN'}
+                    value="Mtn"
+                    checked={sourceOperator === 'Mtn'}
                     onChange={(e) => setSourceOperator(e.target.value)}
                     className="mr-2"
                   />
@@ -303,7 +297,7 @@ const Payment = () => {
                 <label className="flex items-center text-xs">
                   <input
                     type="radio"
-                    value="MTN"
+                    value="Mtn"
                     checked={recipientOperator === 'MTN'}
                     onChange={(e) => setRecipientOperator(e.target.value)}
                     className="mr-2"
@@ -314,17 +308,16 @@ const Payment = () => {
               </div>
             </div>
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <label className="block text-gray-700 mb-2">Saisissez votre numero</label>
               <input
-                type="text"
-                max={10}
+                type="number"
                 value={recipientNumber}
                 onChange={(e) => setRecipientNumber(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg"
                 required
               />
-            </div>
+            </div> */}
 
             <div className="mb-1">
               <label className="block text-gray-700 mb-0">Montant</label>
@@ -350,7 +343,7 @@ const Payment = () => {
               />
             </div>} */}
             {loading ? (
-              <div style={{ justifyContent: 'center', alignItems: 'center', display:'flex' }}>
+              <div style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
                 <InfinitySpin
                   visible={true}
                   width="100"
